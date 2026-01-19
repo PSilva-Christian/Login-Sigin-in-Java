@@ -65,36 +65,68 @@ public static class User {
 
 }
 
+public static class Login {
+    String name;
+    String password;
+
+    Login() {
+        this.name = keepUsername();
+        this.password = keepPassword();
+    }
+
+    String keepUsername() {
+
+        String username;
+        IO.print("\nUsername: ");
+        username = IO.readln();
+
+        return username;
+    }
+
+    String keepPassword() {
+
+        String password;
+
+        do {
+            IO.print("\nPassword: ");
+            password = IO.readln();
+
+            if (password.length() < 8)
+                IO.println("\nPassword must be at least 8 characters.");
+
+        } while (password.length() < 8);
+        return password;
+    }
+}
+
 void main(){
 
     int choose = menu();
 
     if (choose == 0) {
-        IO.println("Closing program...");
+        IO.println("\n\tClosing program...");
         return;
     }
 
     ConnectDB sqliteDB = new ConnectDB();
     Connection connection = sqliteDB.getConnection();
-    boolean alrightLog = false;
     User user = null;
+    Login userLog = null;
 
     if (choose == 1){
 
-        IO.println("\n\t\t\t-------------------\n\t\t\t--- Log-in Page ---\n\t\t\t-------------------\n\n");
-        user = new User();
-        alrightLog = checkIfHaveAccount(user, sqliteDB, connection);
-
+        printCenteredMessage("Log-in Page");
+        userLog = new Login();
+        String logged = checkIfHaveAccount(userLog, sqliteDB, connection);
+        if (logged != null) {
+            printCenteredMessage("Welcome back, " + logged);
+        }
     }
     else if (choose == 2) {
 
-        IO.println("\n\t\t\t-------------------\n\t\t\t--- Sig-in Page ---\n\t\t\t-------------------\n\n");
+        printCenteredMessage("Sig-in Page");
         user = new User();
-        alrightLog = insertUserDataBase(user, sqliteDB, connection);
-    }
-
-    if (alrightLog) {
-        IO.println("\n\t\t\t---------------------------\n\t\t\t--- Welcome back, " + user.user +" ---\n\t\t\t---------------------------\n\n");
+        insertUserDataBase(user, sqliteDB, connection);
     }
 }
 
@@ -130,18 +162,18 @@ boolean insertUserDataBase(User user, ConnectDB sqliteDB, Connection connection)
     return false;
 }
 
-boolean checkIfHaveAccount(User user, ConnectDB sqliteDB, Connection connection){
+String checkIfHaveAccount(Login user, ConnectDB sqliteDB, Connection connection){
 
     if (connection != null) {
         try {
             Statement statement = connection.createStatement();
-            String querySql = String.format("SELECT id FROM users WHERE username = '%s' AND password = '%s'", user.user, user.password);
+            String querySql = String.format("SELECT username FROM users WHERE username = '%s' AND password = '%s'", user.name, user.password);
 
             ResultSet queryLogin = statement.executeQuery(querySql);
 
             if (queryLogin != null) {
-                IO.println("Login Successful");
-                return true;
+                //IO.println("Login Successful");
+                return queryLogin.getString("username");
             }
 
         } catch (SQLException e) {
@@ -157,9 +189,8 @@ boolean checkIfHaveAccount(User user, ConnectDB sqliteDB, Connection connection)
         //IO.println("Connection failed.");
     }
 
-    return false;
+    return null;
 }
-
 
 boolean checkChoice(String choice) {
     return !choice.toUpperCase().contains("LOG") && !choice.toUpperCase().contains("SIG")
@@ -169,10 +200,10 @@ boolean checkChoice(String choice) {
 int menu (){
     String choose;
     int returnMenu = 0;
-    IO.println("\n\t\t\t------------------\n\t\t\t--- Login Page ---\n\t\t\t------------------\n\n");
+    printCenteredMessage("Log-in Page");
 
     do {
-        IO.print("\tSelect:\n\t- Log -> Login\n\t- Sig -> Sign-in\n\t- Exi - Exit\n\n\tEnter your choice: ");
+        IO.print("\tSelect:\n\t- Log -> Login\n\t- Sig -> Sign-in\n\t- Exi -> Exit\n\n\tEnter your choice: ");
         choose = IO.readln();
 
         if (checkChoice(choose)){
@@ -187,4 +218,17 @@ int menu (){
         returnMenu = 1;
 
     return returnMenu;
+}
+
+void printCenteredMessage(String message){
+    int times = message.length() + 8;
+    IO.print("\n\t\t\t");
+    for (int i = 0; i < times; i++) {
+        IO.print("-");
+    }
+    System.out.printf("\n\t\t\t--- %s ---\n\t\t\t", message);
+    for (int j = 0; j < times; j++) {
+        IO.print("-");
+    }
+    IO.print("\n\n");
 }
