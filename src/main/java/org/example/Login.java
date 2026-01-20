@@ -45,9 +45,9 @@ public static class User {
             IO.print("\nEmail: ");
             email = IO.readln();
 
-            if (!isValidEmail(email))
+            if (isValidEmail(email))
                 IO.println("Invalid email address, try again.");
-        } while(!isValidEmail(email));
+        } while(isValidEmail(email));
         return email;
 
     }
@@ -60,7 +60,7 @@ public static class User {
 
         String domain = email.substring(email.indexOf("@"));
 
-        return email.contains("@") && domainsValid.contains(domain);
+        return !email.contains("@") || !domainsValid.contains(domain);
     }
 
 }
@@ -110,8 +110,8 @@ void main(){
 
     ConnectDB sqliteDB = new ConnectDB();
     Connection connection = sqliteDB.getConnection();
-    User user = null;
-    Login userLog = null;
+    User user;
+    Login userLog;
 
     if (choose == 1){
 
@@ -130,67 +130,71 @@ void main(){
     }
 }
 
-boolean insertUserDataBase(User user, ConnectDB sqliteDB, Connection connection) {
-
-    if (connection != null) {
-        try {
-            Statement statement = connection.createStatement();
-
-            statement.executeUpdate
-                ("CREATE TABLE IF NOT EXISTS users (id INTEGER PRIMARY KEY, email TEXT, password TEXT, username TEXT)");
-            //IO.println("Table created successfully");
-
-            String inputSigUser = String.format
-                    ("INSERT INTO users (email, password, username) VALUES ('%s', '%s', '%s')",
-                            user.email, user.password, user.user);
-
-            statement.executeUpdate(inputSigUser);
-            IO.println("Signed successfully");
-            return true;
-
-
-        } catch(SQLException e) {
-            e.printStackTrace();
-        }
-        finally {
-            sqliteDB.closeConnection();
-        }
+void insertUserDataBase(User user, ConnectDB sqliteDB, Connection connection) {
+    if (connection == null){
+        IO.println("Connection failed.");
+        return;
     }
-    else {
-        //IO.println("Connection with database failed, try again later.");
+
+
+    try {
+
+        String inputSigUser = "INSERT INTO users (email, password, username) VALUES (?, ?, ?)";
+        String createTable = "CREATE TABLE IF NOT EXISTS users (id INTEGER PRIMARY KEY, email TEXT, password TEXT, username TEXT)";
+
+        try (Statement statement = connection.createStatement()) {
+            statement.executeUpdate(createTable);
+        }
+
+        try (PreparedStatement preparedStatementSig = connection.prepareStatement(inputSigUser)) {
+            preparedStatementSig.setString(1, user.email);
+            preparedStatementSig.setString(2, user.password);
+            preparedStatementSig.setString(3, user.user);
+
+            if (preparedStatementSig.executeUpdate() > 0) {
+                IO.println("Signed successfully");
+            }
+        }
+
+    } catch(SQLException e) {
+        e.printStackTrace();
     }
-    return false;
+    finally {
+        IO.println("Closing Connection");
+        sqliteDB.closeConnection();
+
+    }
 }
 
 String checkIfHaveAccount(Login user, ConnectDB sqliteDB, Connection connection){
+        if (connection == null) {
+            IO.println("Connection failed.");
+            return null;
+        }
 
-    if (connection != null) {
-        try {
-            Statement statement = connection.createStatement();
-            String querySql = String.format("SELECT username FROM users WHERE username = '%s' AND password = '%s'", user.name, user.password);
+        String querySql = "SELECT username FROM users WHERE username = ? AND password = ?";
 
-            ResultSet queryLogin = statement.executeQuery(querySql);
+        try (PreparedStatement pstmt = connection.prepareStatement(querySql)) {
 
-            if (queryLogin != null) {
-                //IO.println("Login Successful");
-                return queryLogin.getString("username");
+            pstmt.setString(1, user.name);
+            pstmt.setString(2, user.password);
+
+            try (ResultSet rs = pstmt.executeQuery()) {
+                if (rs.next()) {
+                    IO.println("Login Successful");
+                    return rs.getString("username");
+                }
             }
-
         } catch (SQLException e) {
             e.printStackTrace();
-
         } finally {
-            //IO.println("Closing database connection");
+            IO.println("Closing database connection");
             sqliteDB.closeConnection();
         }
 
+        IO.println("Account not found or invalid credentials.");
+        return null;
     }
-    else{
-        //IO.println("Connection failed.");
-    }
-
-    return null;
-}
 
 boolean checkChoice(String choice) {
     return !choice.toUpperCase().contains("LOG") && !choice.toUpperCase().contains("SIG")
