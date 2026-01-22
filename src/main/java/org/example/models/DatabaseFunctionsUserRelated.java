@@ -1,12 +1,15 @@
 package org.example.models;
 
+import org.mindrot.jbcrypt.BCrypt;
 import java.sql.*;
+
+import static org.example.models.MenuAndInterface.notificationMessage;
 
 public class DatabaseFunctionsUserRelated {
 
     public static void insertUserDataBase(UserModels.User user, Connection connection) {
         if (connection == null){
-            IO.println("Connection failed.");
+            notificationMessage("Connection failed.");
             return;
         }
 
@@ -22,11 +25,11 @@ public class DatabaseFunctionsUserRelated {
 
             try (PreparedStatement prepared = connection.prepareStatement(inputSigUser)) {
                 prepared.setString(1, user.getEmail());
-                prepared.setString(2, user.getPassword());
+                prepared.setString(2, generateBcryptPassword(user.getPassword()));
                 prepared.setString(3, user.getUser());
 
                 if (prepared.executeUpdate() > 0) {
-                    IO.println("Signed successfully");
+                    notificationMessage("Signed successfully");
                 }
             }
 
@@ -37,47 +40,47 @@ public class DatabaseFunctionsUserRelated {
 
     public static String checkIfHaveAccount(UserModels.Login user, Connection connection){
         if (connection == null) {
-            IO.println("Connection failed.");
+            notificationMessage("Connection failed.");
             return null;
         }
 
-        String querySql = "SELECT username FROM users WHERE username = ? AND password = ?";
+        String querySql = "SELECT password FROM users WHERE username = ?";
 
         try (PreparedStatement prepared = connection.prepareStatement(querySql)) {
 
             prepared.setString(1, user.getName());
-            prepared.setString(2, user.getPassword());
 
             try (ResultSet rs = prepared.executeQuery()) {
                 if (rs.next()) {
-                    IO.println("\n\t -- Login Successful --");
-                    return rs.getString("username");
+                    if (checkPasswordMatchBcrypt(user.getPassword(), rs.getString("password"))) {
+                        notificationMessage("Login Successful");
+                        return "True";
+                    }
                 }
             }
         } catch (SQLException e) {
             e.printStackTrace();
         }
 
-        IO.println("\n\nAccount not found or invalid credentials.");
+        notificationMessage("Account not found or invalid credentials.");
         return null;
     }
 
     public static void printUserInfo(UserModels.Login user, Connection connection){
         if(connection == null){
-            IO.println("\n\tConnection failed.");
+            notificationMessage("Connection failed.");
             return;
         }
 
         MenuAndInterface.printCenteredMessage("User information");
 
-        String querySql = "SELECT * FROM users WHERE username = ? AND password = ?";
+        String querySql = "SELECT * FROM users WHERE username = ?";
         try (PreparedStatement prepared = connection.prepareStatement(querySql)){
             prepared.setString(1, user.getName());
-            prepared.setString(2, user.getPassword());
 
             try (ResultSet result =  prepared.executeQuery()){
                 IO.println("\t\tUsername: " + result.getString("username"));
-                IO.println("\t\tPassword: " + result.getString("password"));
+                IO.println("\t\tPassword: " + user.getPassword());
                 IO.println("\t\tEmail: " + result.getString("email"));
                 MenuAndInterface.userConfirmNextPage();
                 return;
@@ -85,26 +88,23 @@ public class DatabaseFunctionsUserRelated {
         } catch (SQLException e) {
             e.printStackTrace();
         }
-        IO.println("Error trying to search user info");
+        notificationMessage("Error trying to search user info");
     }
 
     public static void passwordReset(UserModels.Login user, Connection connection, String newPassword){
         if (connection == null) {
-            IO.println("\n\tConnection failed.");
+            notificationMessage("Connection failed.");
             return;
         }
 
-        MenuAndInterface.printCenteredMessage("Password reset");
-
-        String querySql = "UPDATE users SET password = ? WHERE username = ? AND password = ?";
+        String querySql = "UPDATE users SET password = ? WHERE username = ?";
 
         try(PreparedStatement prepared = connection.prepareStatement(querySql)){
             prepared.setString(1, newPassword);
             prepared.setString(2, user.getName());
-            prepared.setString(3, user.getPassword());
 
             if (prepared.executeUpdate() > 0){
-                IO.println("Password reset successful");
+                notificationMessage("Password reset successful");
                 return;
             }
 
@@ -112,7 +112,16 @@ public class DatabaseFunctionsUserRelated {
             e.printStackTrace();
         }
 
-        IO.println("\n\tPassword reset failed, try again.");
+        notificationMessage("Password reset failed, try again.");
 
     }
+
+    public static String generateBcryptPassword(String password){
+        return BCrypt.hashpw(password, BCrypt.gensalt(12));
+    }
+
+    public static boolean checkPasswordMatchBcrypt(String password, String hashedPassword){
+        return BCrypt.checkpw(password, hashedPassword);
+    }
+
 }

@@ -77,7 +77,11 @@ public class MenuAndInterface {
     }
 
     public static void closeProgramMessage(){
-        IO.println("\n\tClosing program...");
+        notificationMessage("Closing program");
         userConfirmNextPage();
+    }
+
+    public static void notificationMessage(String message){
+        IO.println("\n\t\t-----   " + message + "   -----\n");
     }
 }

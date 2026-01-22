@@ -1,10 +1,11 @@
 package org.example.models;
 
 import org.example.models.UserModels.*;
-
 import java.sql.Connection;
 import java.util.List;
 import java.util.Arrays;
+
+import static org.example.models.DatabaseFunctionsUserRelated.*;
 
 public class UserLoginFunctions {
 
@@ -75,6 +76,9 @@ public class UserLoginFunctions {
     public static String userNewPassword(){
         String newPassword1, newPassword2;
 
+        MenuAndInterface.printCenteredMessage("Password reset");
+
+
         do {
             newPassword1 = createPassword();
             IO.print("Confirm password: ");
@@ -86,7 +90,7 @@ public class UserLoginFunctions {
 
     public static Login userPasswordReset(Login userLog, Connection connection) {
         String newPassword = UserLoginFunctions.userNewPassword();
-        DatabaseFunctionsUserRelated.passwordReset(userLog, connection, newPassword);
+        DatabaseFunctionsUserRelated.passwordReset(userLog, connection, generateBcryptPassword(newPassword));
         String oldName = userLog.getName();
         return new Login(oldName, newPassword);
     }

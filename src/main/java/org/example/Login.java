@@ -12,7 +12,6 @@ void main(){
 
     try {
         while (true) {
-
             int choose = MenuAndInterface.menu();
 
             if (choose == 0) {
@@ -23,9 +22,8 @@ void main(){
             if (choose == 1) {
 
                 Login userLog = UserLoginFunctions.createNewLogin();
-                String logged = DatabaseFunctionsUserRelated.checkIfHaveAccount(userLog, connection);
 
-                if (logged != null) {
+                if (DatabaseFunctionsUserRelated.checkIfHaveAccount(userLog, connection) != null) {
 
                     while (true){
                         int loggedChoose =  MenuAndInterface.loggedMenu();
