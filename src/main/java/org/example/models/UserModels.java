@@ -32,7 +32,7 @@ public class UserModels {
         private final String name;
         private final String password;
 
-        Login(String name,  String password) {
+        public Login(String name,  String password) {
             this.name = name;
             this.password = password;
         }
@@ -46,5 +46,4 @@ public class UserModels {
         }
 
     }
-
 }

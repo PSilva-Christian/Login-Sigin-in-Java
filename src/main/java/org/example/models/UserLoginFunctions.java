@@ -1,12 +1,15 @@
 package org.example.models;
 
 import org.example.models.UserModels.*;
+
+import java.sql.Connection;
 import java.util.List;
 import java.util.Arrays;
 
 public class UserLoginFunctions {
 
     public static User createNewUser() {
+        MenuAndInterface.printCenteredMessage("Sig-in Page");
         String name = createUsername();
         String password = createPassword();
         String email = createEmail();
@@ -14,6 +17,7 @@ public class UserLoginFunctions {
     }
 
     public static Login createNewLogin() {
+        MenuAndInterface.printCenteredMessage("Log-in Page");
         String name = createUsername();
         String password = createPassword();
         return new Login(name, password);
@@ -66,5 +70,24 @@ public class UserLoginFunctions {
         String domain = email.substring(email.indexOf("@"));
 
         return !email.contains("@") || !domainsValid.contains(domain);
+    }
+
+    public static String userNewPassword(){
+        String newPassword1, newPassword2;
+
+        do {
+            newPassword1 = createPassword();
+            IO.print("Confirm password: ");
+            newPassword2 = IO.readln();
+
+        }while (!newPassword1.equals(newPassword2));
+        return newPassword1;
+    }
+
+    public static Login userPasswordReset(Login userLog, Connection connection) {
+        String newPassword = UserLoginFunctions.userNewPassword();
+        DatabaseFunctionsUserRelated.passwordReset(userLog, connection, newPassword);
+        String oldName = userLog.getName();
+        return new Login(oldName, newPassword);
     }
 }
